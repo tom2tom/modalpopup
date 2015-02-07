@@ -1,0 +1,54 @@
+jQuery plugin - modal confirmation dialog
+
+Example when object with id 'submit' is clicked, pop up dialog using default options.
+ $('#submit').modalconfirm();
+
+Example when object with class 'table' is clicked, pop up dialog with specified
+  options overriding corresponding defaults.
+ $('.table').modalconfirm({settings});
+	
+ Settings comprises one or more (in which case comma-separated) key:value pairs...
+	 overlayID: ID of div representing the oerlay, default 'confirm'
+	 popupID: ID of div representing the dialog, default null (in which case,
+		the overlay div is assumed to be the child of the overlayID div)
+	 confirmBtnID: ID of confirm/agree/yes button inside the dialog div, default 'm1_yes'
+	 denyBtnID: ID of deny/refuse/no button inside the dialog div, default 'm1_no'
+	 doCheck: function for click-time check whether to show the dialog, default null
+	 preShow: function to tailor the dialog prior to showing it, default null
+	 onCheckFail: either a function (which returns true/false) to call if doCheck
+		returns false, and then return the value returned from that function,
+		or else just boolean true or false, in which cases call the corresponding
+		onConfirm/onDeny if it exists, and then return the boolean value
+		default null
+	 onConfirm: function to call if confirmBtnID button is clicked, default null
+	 onDeny: function to call if denyBtnID button is clicked, default null
+    whether or not present, false is returned to browser  
+
+API
+context/this = object to which the dialog was bound
+doCheck()
+preShow(div)
+div = the popupID div 
+onCheckFail()
+onConfirm(event)
+event = data struct for event being processed
+onDeny(event)
+event = data struct for event being processed
+
+Related css:
+for overlay div:
+	display:none;
+	position:fixed;
+	top:0;
+	left:0;
+	height:100%;
+	width:100%;
+	z-index:1001;
+	background-color:rgba(0,0,0,.3); //or whatever
+for dialog div:
+	display:none;
+	position: absolute;
+	top:50%;
+	left:50%;
+	z-index:1002;
+	OTHERS AS APPROPRIATE
