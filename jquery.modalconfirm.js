@@ -1,6 +1,6 @@
 /*
  ModalConfirm popup modal confirmation-dialog
- Version 1.0
+ Version 1.1
 
  Copyright (C) 2014-2015 Tom Phane
  Licensed under the GNU Affero GPL license v.3, or at the distributor's discretion, a later version
@@ -17,11 +17,11 @@
   options overriding corresponding defaults.
  @param settings An object literal containing one or more key:value pairs
 	Settings options -
-	 overlayID: ID of div representing the overlay, default 'confirm'
+	 overlayID: ID of div representing the background-overlay, default 'mc_overlay'
 	 popupID: ID of div representing the dialog, default null (in which case,
 		the dialog div is assumed to be the first child of the overlayID div)
-	 confirmBtnID: ID of confirm/agree/yes button inside the dialog div, default 'm1_yes'
-	 denyBtnID: ID of deny/refuse/no button inside the dialog div, default 'm1_no'
+	 confirmBtnID: ID of confirm/agree/yes button inside the dialog div, default 'mc_conf'
+	 denyBtnID: ID of deny/refuse/no button inside the dialog div, default 'mc_deny'
 	 doCheck: function for click-time check whether to show the dialog, default null
 	 preShow: function to tailor the dialog prior to showing it, default null
 	 onCheckFail: either a function (which returns true/false) to call if doCheck
@@ -76,13 +76,13 @@
 	$.extend({
 		modalconfirm: new function () {
 			this.defaults = {
-				confirmBtnID: 'm1_yes',
-				denyBtnID: 'm1_no',
+				confirmBtnID: 'mc_conf',
+				denyBtnID: 'mc_deny',
 				doCheck: null,
 				onCheckFail: null,
 				onConfirm: null,
 				onDeny: null,
-				overlayID: 'confirm',
+				overlayID: 'mc_overlay',
 				popupID: null,
 				preShow: null
 			};
@@ -91,26 +91,35 @@
 				//merge parameters
 				var settings = $.extend({}, $.modalconfirm.defaults, options || {});
 				this.each(function () {
-					$(this).click(function(e) {
+					$(this).click(function(ef,options) {
+						options = options || {};
+						if (options.reclick) {
+							return; //let the event bubble away
+						}
+						ef.preventDefault();
+//						ef.stopImmediatePropagation();
 						if(!$.isFunction(settings.doCheck) || settings.doCheck.call(this)) {
 							var overlay = $('#'+settings.overlayID);
 							overlay.css({ 'display':'block' });
-
+							var original = this;
 							var popup = (settings.popupID) ?
 								$('#'+settings.popupID) : overlay.children(':first');
-							//confirm-button click will impersonate the originator
-							popup.find('#'+settings.confirmBtnID).attr('name',this.name)
-							  .click(function(e) {
+							//confirm-button click will impersonate the originator for 'submit' action
+							popup.find('#'+settings.confirmBtnID))
+							  .click(function(ey) {
 								hide(overlay,popup);
 								if($.isFunction(settings.onConfirm)) {
-									return settings.onConfirm.call(this,e);
-								 } else {
-									return (settings.onConfirm != false);
+									if (settings.onConfirm.call(this,ey)) {
+										$(ef.currentTarget).click({'reclick':true});
+									}
+								} else if (settings.onConfirm === null || settings.onConfirm != false) {
+									$(ef.currentTarget).click({'reclick':true});
 								}
+								return false;
 							});
-							popup.find('#'+settings.denyBtnID).click(function(e) {
+							popup.find('#'+settings.denyBtnID).click(function(en) {
 								hide(overlay,popup);
-								$.isFunction(settings.onDeny) && settings.onDeny.call(this,e);
+								$.isFunction(settings.onDeny) && settings.onDeny.call(this,en);
 								return false;
 							});
 
@@ -129,17 +138,16 @@
 								'width' :  wide + 'px',
 								'display':'block'
 							});
-
 						} else if(settings.onCheckFail) {
 							if($.isFunction(settings.onCheckFail)) {
 								return settings.onCheckFail.call(this);
 							} else if($.isFunction(settings.onConfirm)) {
-								return settings.onConfirm.call(this,e);
+								return settings.onConfirm.call(this,ef);
 							} else {
-								return (settings.onConfirm != false);
+								return (settings.onConfirm === null || settings.onConfirm != false);
 							}
 						} else if($.isFunction(settings.onDeny)) {
-							settings.onDeny.call(this,e);
+							settings.onDeny.call(this,ef);
 						}
 						return false;
 					});
