@@ -31,7 +31,7 @@
 		default null
 	 onConfirm: function to call if confirmBtnID button is clicked, default null
 	 onDeny: function to call if denyBtnID button is clicked, default null
-      whether or not present, false is returned to browser  
+      whether or not present, the original event will be aborted
 
  API
  context/this = object to which the dialog was bound
@@ -39,10 +39,8 @@
  preShow(div)
    div = the popupID div 
  onCheckFail()
- onConfirm(event)
-   event = data struct for event being processed
- onDeny(event)
-   event = data struct for event being processed
+ onConfirm()
+ onDeny()
 
  Related css:
  for overlay div:
@@ -91,69 +89,70 @@
 				//merge parameters
 				var settings = $.extend({}, $.modalconfirm.defaults, options || {});
 				this.each(function () {
-					$(this).click(function(ef,options) {
-						options = options || {};
-						if (options.reclick) {
-							return; //let the event bubble away
-						}
-						ef.preventDefault();
-//						ef.stopImmediatePropagation();
-						if(!$.isFunction(settings.doCheck) || settings.doCheck.call(this)) {
-							var overlay = $('#'+settings.overlayID);
-							overlay.css({ 'display':'block' });
-							var original = this;
-							var popup = (settings.popupID) ?
-								$('#'+settings.popupID) : overlay.children(':first');
-							//confirm-button click will impersonate the originator for 'submit' action
-							popup.find('#'+settings.confirmBtnID))
-							  .click(function(ey) {
-								hide(overlay,popup);
-								if($.isFunction(settings.onConfirm)) {
-									if (settings.onConfirm.call(this,ey)) {
-										$(ef.currentTarget).click({'reclick':true});
-									}
-								} else if (settings.onConfirm === null || settings.onConfirm != false) {
-									$(ef.currentTarget).click({'reclick':true});
-								}
-								return false;
-							});
-							popup.find('#'+settings.denyBtnID).click(function(en) {
-								hide(overlay,popup);
-								$.isFunction(settings.onDeny) && settings.onDeny.call(this,en);
-								return false;
-							});
-
-							if($.isFunction(settings.preShow)) {
-								settings.preShow.call(this,popup);
-							}
-							var high = popup.height();
-							var wide = popup.width();
-							var vadj = -popup.outerHeight()/2;
-							var hadj = -popup.outerWidth()/2;
-
-							popup.css({
-								'margin-top' : vadj + 'px',
-								'margin-left' : hadj + 'px',
-								'height' :  high + 'px',
-								'width' :  wide + 'px',
-								'display':'block'
-							});
-						} else if(settings.onCheckFail) {
-							if($.isFunction(settings.onCheckFail)) {
-								return settings.onCheckFail.call(this);
-							} else if($.isFunction(settings.onConfirm)) {
-								return settings.onConfirm.call(this,ef);
-							} else {
-								return (settings.onConfirm === null || settings.onConfirm != false);
-							}
-						} else if($.isFunction(settings.onDeny)) {
-							settings.onDeny.call(this,ef);
-						}
-						return false;
-					});
+					$(this).bind('click.mc_confirm',settings,clickhandler)
 				});
 				return this;
 			};
+
+			function clickhandler (ef) {
+				var settings = ef.data;
+				var ob = ef.target;
+				if(!$.isFunction(settings.doCheck) || settings.doCheck.call()) {
+					ef.stopPropagation();
+					ef.preventDefault();
+					var overlay = $('#'+settings.overlayID);
+					overlay.css({ 'display':'block' });
+					var popup = (settings.popupID) ?
+						$('#'+settings.popupID) : overlay.children(':first');
+					popup.find('#'+settings.confirmBtnID).click(function(eb) {
+						eb.stopImmediatePropagation();
+						hide(overlay,popup);
+						var conf;
+						if($.isFunction(settings.onConfirm)) {
+							conf = settings.onConfirm.call(ob);
+						} else {
+							conf = (settings.onConfirm === null || settings.onConfirm !== false);
+						}
+						if(conf) {
+							$(ob).unbind('click.mc_confirm').trigger('click'); //prevent re-entrance
+							$(ob).bind('click.mc_confirm',settings,clickhandler)
+						}
+					});
+					popup.find('#'+settings.denyBtnID).click(function(eb) {
+						eb.stopImmediatePropagation();
+						hide(overlay,popup);
+						$.isFunction(settings.onDeny) && settings.onDeny.call(ob);
+					});
+
+					if($.isFunction(settings.preShow)) {
+						settings.preShow.call(ob,popup);
+					}
+					var high = popup.height();
+					var wide = popup.width();
+					var vadj = -popup.outerHeight()/2;
+					var hadj = -popup.outerWidth()/2;
+
+					popup.css({
+						'margin-top' : vadj + 'px',
+						'margin-left' : hadj + 'px',
+						'height' :  high + 'px',
+						'width' :  wide + 'px',
+						'display':'block'
+					});
+				} else if(settings.onCheckFail) {
+					if($.isFunction(settings.onCheckFail)) {
+						if (!settings.onCheckFail.call(ob))
+							ef.stopImmediatePropagation();
+					} else if($.isFunction(settings.onConfirm)) {
+						if(!settings.onConfirm.call(ob))
+							ef.stopImmediatePropagation();
+					} else if (settings.onConfirm === false) {
+						ef.stopImmediatePropagation();
+					}
+				} else if($.isFunction(settings.onDeny)) {
+					settings.onDeny.call(ob);
+				}
+			}
 
 			function hide (overlay,popup) {
 				popup.css({'display':'none'});
