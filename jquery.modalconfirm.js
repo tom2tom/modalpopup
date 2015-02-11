@@ -89,7 +89,7 @@
 				//merge parameters
 				var settings = $.extend({}, $.modalconfirm.defaults, options || {});
 				this.each(function () {
-					$(this).bind('click.mc_confirm',settings,clickhandler)
+					$(this).bind('click.mc_confirm',settings,clickhandler);
 				});
 				return this;
 			};
@@ -98,7 +98,7 @@
 				var settings = ef.data;
 				var ob = ef.target;
 				if(!$.isFunction(settings.doCheck) || settings.doCheck.call()) {
-					ef.stopPropagation();
+					ef.stopImmediatePropagation();
 					ef.preventDefault();
 					var overlay = $('#'+settings.overlayID);
 					overlay.css({ 'display':'block' });
@@ -115,7 +115,7 @@
 						}
 						if(conf) {
 							$(ob).unbind('click.mc_confirm').trigger('click'); //prevent re-entrance
-							$(ob).bind('click.mc_confirm',settings,clickhandler)
+							$(ob).bind('click.mc_confirm',settings,clickhandler);
 						}
 					});
 					popup.find('#'+settings.denyBtnID).click(function(eb) {
@@ -140,14 +140,17 @@
 						'display':'block'
 					});
 				} else if(settings.onCheckFail) {
+					var stop;
 					if($.isFunction(settings.onCheckFail)) {
-						if (!settings.onCheckFail.call(ob))
-							ef.stopImmediatePropagation();
+						stop = !settings.onCheckFail.call(ob);
 					} else if($.isFunction(settings.onConfirm)) {
-						if(!settings.onConfirm.call(ob))
-							ef.stopImmediatePropagation();
-					} else if (settings.onConfirm === false) {
+						stop = !settings.onConfirm.call(ob);
+					} else {
+						stop = (settings.onConfirm === false);
+					}
+					if (stop) {
 						ef.stopImmediatePropagation();
+						ef.preventDefault();
 					}
 				} else if($.isFunction(settings.onDeny)) {
 					settings.onDeny.call(ob);
