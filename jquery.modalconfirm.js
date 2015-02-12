@@ -1,9 +1,8 @@
-/*
- ModalConfirm popup modal confirmation-dialog
- Version 1.1
-
- Copyright (C) 2014-2015 Tom Phane
- Licensed under the GNU Affero GPL license v.3, or at the distributor's discretion, a later version
+/*!
+ModalConfirm popup modal confirmation-dialog
+Version 1.1
+Copyright (C) 2014-2015 Tom Phane
+Licensed under the GNU Affero GPL license v.3, or at the distributor's discretion, a later version
 */
 /**
  @description
