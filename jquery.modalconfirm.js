@@ -1,6 +1,6 @@
 /*!
 ModalConfirm popup modal confirmation-dialog
-Version 1.1
+Version 2.1
 Copyright (C) 2014-2015 Tom Phane
 Licensed under the GNU Affero GPL license v.3, or at the distributor's discretion, a later version
 */
@@ -19,27 +19,33 @@ Licensed under the GNU Affero GPL license v.3, or at the distributor's discretio
 	 overlayID: ID of div representing the background-overlay, default 'mc_overlay'
 	 popupID: ID of div representing the dialog, default null (in which case,
 		the dialog div is assumed to be the first child of the overlayID div)
-	 confirmBtnID: ID of confirm/agree/yes button inside the dialog div, default 'mc_conf'
-	 denyBtnID: ID of deny/refuse/no button inside the dialog div, default 'mc_deny'
+	 showBtn: which button(s) to show - 'both' or 'confirm' or 'deny', default 'both'
+	 confirmBtnID: ID of confirm/agree/yes button to be displayed inside the
+		dialog div, default 'mc_conf'
+	 denyBtnID: ID of deny/refuse/no button to be displayed inside the dialog div,
+		default 'mc_deny'
 	 doCheck: function for click-time check whether to show the dialog, default null
 	 preShow: function to tailor the dialog prior to showing it, default null
-	 onCheckFail: either a function (which returns true/false) to call if doCheck
-		returns false, and then return the value returned from that function,
-		or else just boolean true or false, in which cases call the corresponding
-		onConfirm/onDeny if it exists, and then return the boolean value
-		default null
+	 onCheckFail: either a function (which returns true/false), or just boolean true
+	 or false, default null. Relevant if doCheck returns false - false aborts the
+	 original event
 	 onConfirm: function to call if confirmBtnID button is clicked, default null
 	 onDeny: function to call if denyBtnID button is clicked, default null
       whether or not present, the original event will be aborted
 
+ @example $.modalconfirm.show({settings});
+ @desc programatically pop up a dialog
+ @param settings ibid
+
  API
  context/this = object to which the dialog was bound
- doCheck()
- preShow(div)
-   div = the popupID div 
- onCheckFail()
- onConfirm()
- onDeny()
+ tg = target, what was clicked
+ $popup = popup container-div object
+ doCheck() return T/F, T shows dialog
+ preShow(tg,$popup) return nothing
+ onCheckFail(tg) return T/F, F aborts
+ onConfirm(tg,$popup) return T/F, F aborts
+ onDeny(tg) return nothing
 
  Related css:
  for overlay div:
@@ -75,6 +81,9 @@ Licensed under the GNU Affero GPL license v.3, or at the distributor's discretio
 			this.defaults = {
 				confirmBtnID: 'mc_conf',
 				denyBtnID: 'mc_deny',
+				showBtn: 'both',
+				confirmCss: null,
+				denyCss: null,
 				doCheck: null,
 				onCheckFail: null,
 				onConfirm: null,
@@ -94,72 +103,145 @@ Licensed under the GNU Affero GPL license v.3, or at the distributor's discretio
 			};
 
 			function clickhandler (ef) {
-				var settings = ef.data;
-				var ob = ef.target;
-				if(!$.isFunction(settings.doCheck) || settings.doCheck.call()) {
+				//bound-object(s) click handler and (probably) confirm-button click
+				var settings = ef.data,
+					tg = ef.currentTarget;
+				if(!$.isFunction(settings.doCheck) || settings.doCheck.call(this)) {
 					ef.stopImmediatePropagation();
 					ef.preventDefault();
-					var overlay = $('#'+settings.overlayID);
-					overlay.css({ 'display':'block' });
-					var popup = (settings.popupID) ?
+					var $overlay = $('#'+settings.overlayID),
+						$popup = (settings.popupID) ?
 						$('#'+settings.popupID) : overlay.children(':first');
-					popup.find('#'+settings.confirmBtnID).click(function(eb) {
-						eb.stopImmediatePropagation();
-						hide(overlay,popup);
-						var conf;
-						if($.isFunction(settings.onConfirm)) {
-							conf = settings.onConfirm.call(ob);
-						} else {
-							conf = (settings.onConfirm === null || settings.onConfirm !== false);
-						}
-						if(conf) {
-							$(ob).unbind('click.mc_confirm').trigger('click'); //prevent re-entrance
-							$(ob).bind('click.mc_confirm',settings,clickhandler);
-						}
-					});
-					popup.find('#'+settings.denyBtnID).click(function(eb) {
-						eb.stopImmediatePropagation();
-						hide(overlay,popup);
-						$.isFunction(settings.onDeny) && settings.onDeny.call(ob);
-					});
-
-					if($.isFunction(settings.preShow)) {
-						settings.preShow.call(ob,popup);
+					if(settings.showBtn != 'deny') {
+						$popup.find('#'+settings.confirmBtnID).click(function(eb) {
+							//confirm-button click handler
+							eb.stopImmediatePropagation();
+							hide($overlay,$popup,settings);
+							var conf;
+							if($.isFunction(settings.onConfirm)) {
+								conf = settings.onConfirm.call(this,tg,$popup);
+							} else {
+								conf = (settings.onConfirm === null || settings.onConfirm !== false);
+							}
+							if(conf) {
+								var $tg = $(tg);
+								$tg.unbind('click.mc_confirm'); //prevent re-entrance
+								tg.click(); //NOT $tg.trigger('click') - WON'T WORK ON LINKS
+								$tg.bind('click.mc_confirm',settings,clickhandler);
+							}
+						});
+					} else {
+						var $btn = $popup.find('#'+settings.confirmBtnID);
+						//cache current display setting, for later reinstate
+						settings.confirmCss = $btn.css('display');
+						$btn.css('display','none');
 					}
-					var high = popup.height();
-					var wide = popup.width();
-					var vadj = -popup.outerHeight()/2;
-					var hadj = -popup.outerWidth()/2;
-
-					popup.css({
+					if(settings.showBtn != 'confirm') {
+						$popup.find('#'+settings.denyBtnID).click(function(eb) {
+							//deny-button click handler
+							eb.stopImmediatePropagation();
+							eb.preventDefault();
+							hide($overlay,$popup,settings);
+							$.isFunction(settings.onDeny) && settings.onDeny.call(this,tg);
+						});
+					} else {
+						$btn = $popup.find('#'+settings.denyBtnID);
+						settings.denyCss = $btn.css('display');
+						$btn.css('display','none');
+					}
+					//setup the popup
+					$.isFunction(settings.preShow) && settings.preShow.call(this,tg,$popup);
+					var high = $popup.height();
+					var wide = $popup.width();
+					var vadj = -$popup.outerHeight()/2;
+					var hadj = -$popup.outerWidth()/2;
+					$overlay.css('display','block');
+					$popup.css({
 						'margin-top' : vadj + 'px',
 						'margin-left' : hadj + 'px',
-						'height' :  high + 'px',
-						'width' :  wide + 'px',
-						'display':'block'
+						'height' : high + 'px',
+						'width' : wide + 'px',
+						'display' : 'block'
 					});
-				} else if(settings.onCheckFail) {
+				} else {
+					//check failed, no popup
 					var stop;
-					if($.isFunction(settings.onCheckFail)) {
-						stop = !settings.onCheckFail.call(ob);
-					} else if($.isFunction(settings.onConfirm)) {
-						stop = !settings.onConfirm.call(ob);
+					if(settings.onCheckFail) {
+						if($.isFunction(settings.onCheckFail)) {
+							stop = !settings.onCheckFail.call(this,tg);
+						} else {
+							stop = (settings.onCheckFail === false);
+						}
 					} else {
-						stop = (settings.onConfirm === false);
+						stop = true;
 					}
-					if (stop) {
+					if(stop) {
+						$.isFunction(settings.onDeny) && settings.onDeny.call(this,tg);
 						ef.stopImmediatePropagation();
 						ef.preventDefault();
 					}
-				} else if($.isFunction(settings.onDeny)) {
-					settings.onDeny.call(ob);
 				}
 			}
 
-			function hide (overlay,popup) {
-				popup.css({'display':'none'});
-				overlay.css({'display':'none'});
+			function hide ($overlay,$popup,settings) {
+				$popup.css({'display':'none'});
+				$overlay.css({'display':'none'});
+				if(settings.confirmCss) {
+					$popup.find('#'+settings.confirmBtnID).css('display',settings.confirmCss);
+					settings.confirmCss = null;
+				}
+				if(settings.denyCss) {
+					$popup.find('#'+settings.denyBtnID).css('display',settings.denyCss);
+					settings.denyCss = null;
+				}
 			}
+
+			this.show = function (options) {
+				var settings = $.extend({}, $.modalconfirm.defaults, options || {}),
+				$overlay = $('#'+settings.overlayID),
+				$popup = (settings.popupID) ?
+					$('#'+settings.popupID) : overlay.children(':first');
+				if(settings.showBtn != 'deny') {
+					$popup.find('#'+settings.confirmBtnID).click(function(eb) {
+						//confirm-button click handler
+						eb.stopImmediatePropagation();
+						hide($overlay,$popup,settings);
+						$.isFunction(settings.onConfirm) && settings.onConfirm.call(this,null,$popup);
+					});
+				} else {
+					var $btn = $popup.find('#'+settings.confirmBtnID);
+					//cache current display setting, for later reinstate
+					settings.confirmCss = $btn.css('display');
+					$btn.css('display','none');
+				}
+				if(settings.showBtn != 'confirm') {
+					$popup.find('#'+settings.denyBtnID).click(function(eb) {
+						//deny-button click handler
+						eb.stopImmediatePropagation();
+						eb.preventDefault();
+						hide($overlay,$popup,settings);
+						$.isFunction(settings.onDeny) && settings.onDeny.call(this,null);
+					});
+				} else {
+					$btn = $popup.find('#'+settings.denyBtnID);
+					settings.denyCss = $btn.css('display');
+					$btn.css('display','none');
+				}
+				//setup the popup
+				$.isFunction(settings.preShow) && settings.preShow.call(this,null,$popup);
+				var high = $popup.height();
+				var wide = $popup.width();
+				var vadj = -$popup.outerHeight()/2;
+				var hadj = -$popup.outerWidth()/2;
+				$overlay.css('display','block');
+				$popup.css({
+					'margin-top' : vadj + 'px',
+					'margin-left' : hadj + 'px',
+					'height' : high + 'px',
+					'width' : wide + 'px',
+					'display' : 'block'
+				});
+			};
 		}
 	});
 	//merge object into jQuery prototype

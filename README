@@ -6,34 +6,37 @@ Example when object with id 'submit' is clicked, pop up dialog using default opt
 Example when object with class 'table' is clicked, pop up dialog with specified
   options overriding corresponding defaults.
  $('.table').modalconfirm({settings});
-	
- Settings comprises one or more (in which case comma-separated) key:value pairs...
-	 overlayID: ID of div representing the oerlay, default 'confirm'
-	 popupID: ID of div representing the dialog, default null (in which case,
-		the overlay div is assumed to be the child of the overlayID div)
-	 confirmBtnID: ID of confirm/agree/yes button inside the dialog div, default 'm1_yes'
-	 denyBtnID: ID of deny/refuse/no button inside the dialog div, default 'm1_no'
-	 doCheck: function for click-time check whether to show the dialog, default null
-	 preShow: function to tailor the dialog prior to showing it, default null
-	 onCheckFail: either a function (which returns true/false) to call if doCheck
-		returns false, and then return the value returned from that function,
-		or else just boolean true or false, in which cases call the corresponding
-		onConfirm/onDeny if it exists, and then return the boolean value
-		default null
-	 onConfirm: function to call if confirmBtnID button is clicked, default null
-	 onDeny: function to call if denyBtnID button is clicked, default null
-    whether or not present, false is returned to browser  
+
+Example programatically pop up a dialog
+ $.modalconfirm.show({settings});
+
+Settings comprises one or more (in which case comma-separated) key:value pairs...
+	overlayID: ID of div representing the background-overlay, default 'mc_overlay'
+	popupID: ID of div representing the dialog, default null (in which case,
+		the dialog div is assumed to be the first child of the overlayID div)
+	showBtn: which button(s) to show - 'both' or 'confirm' or 'deny', default 'both'
+	confirmBtnID: ID of confirm/agree/yes button to be displayed inside the
+		dialog div, default 'mc_conf'
+	denyBtnID: ID of deny/refuse/no button to be displayed inside the dialog div,
+		default 'mc_deny'
+	doCheck: function for click-time check whether to show the dialog, default null
+	preShow: function to tailor the dialog prior to showing it, default null
+	onCheckFail: either a function (which returns true/false), or just boolean true
+	or false, default null. Relevant if doCheck returns false - false aborts the
+	 original event
+	onConfirm: function to call if confirmBtnID button is clicked, default null
+	onDeny: function to call if denyBtnID button is clicked, default null
+      whether or not present, the original event will be aborted
 
 API
 context/this = object to which the dialog was bound
-doCheck()
-preShow(div)
-div = the popupID div 
-onCheckFail()
-onConfirm(event)
-event = data struct for event being processed
-onDeny(event)
-event = data struct for event being processed
+tg = target, what was clicked
+$popup = popup container-div object
+doCheck() return T/F, T shows dialog
+preShow(tg,$popup) return nothing
+onCheckFail(tg) return T/F, F aborts
+onConfirm(tg,$popup) return T/F, F aborts
+onDeny(tg) return nothing
 
 Related css:
 for overlay div:
