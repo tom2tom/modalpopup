@@ -99,7 +99,7 @@ Licensed under the GNU Affero GPL license v.3, or at the distributor's discretio
 				//merge parameters
 				var settings = $.extend({}, $.modalconfirm.defaults, options || {});
 				this.each(function () {
-					$(this).bind('click.mc_confirm',settings,clickhandler);
+					$(this).bind('click',settings,clickhandler);
 				});
 				return this;
 			};
@@ -128,9 +128,9 @@ Licensed under the GNU Affero GPL license v.3, or at the distributor's discretio
 							}
 							if(conf) {
 								var $tg = $(tg);
-								$tg.unbind('click.mc_confirm'); //prevent re-entrance
+								$tg.unbind('click',clickhandler); //prevent re-entrance
 								tg.click(); //NOT $tg.trigger('click') - WON'T WORK ON LINKS
-								$tg.bind('click.mc_confirm',settings,clickhandler);
+								$tg.bind('click',settings,clickhandler);
 							}
 						});
 					} else {
