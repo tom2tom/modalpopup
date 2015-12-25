@@ -75,7 +75,7 @@ Licensed under the GNU Affero GPL license v.3, or at the distributor's discretio
  @author Tom Phane
 */
 
-(function ($) {
+(function ($) { "$:nomunge";
 	//merge class into jQuery namespace
 	$.extend({
 		modalconfirm: new function () {
