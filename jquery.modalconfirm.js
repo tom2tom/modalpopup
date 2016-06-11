@@ -1,7 +1,7 @@
 /*!
 ModalConfirm popup modal confirmation-dialog
-Version 2.1
-Copyright (C) 2014-2015 Tom Phane
+Version 2.2
+Copyright (C) 2014-2016 Tom Phane
 Licensed under the GNU Affero GPL license v.3, or at the distributor's discretion, a later version
 */
 /**
@@ -75,189 +75,185 @@ Licensed under the GNU Affero GPL license v.3, or at the distributor's discretio
  @author Tom Phane
 */
 
-(function ($) { "$:nomunge";
-	//merge class into jQuery namespace
-	$.extend({
-		modalconfirm: new function () {
-			this.defaults = {
-				confirmBtnID: 'mc_conf',
-				denyBtnID: 'mc_deny',
-				doCheck: null,
-				onCheckFail: null,
-				onConfirm: null,
-				onDeny: null,
-				overlayID: 'mc_overlay',
-				popupID: null,
-				preShow: null,
-				seeButtons: 'both',
-				showTarget: null,
-				confirmCss: null,
-				denyCss: null
-			};
+(function($) { "$:nomunge";
+    //merge class into jQuery namespace
+    $.extend({
+        modalconfirm: new function() {
+            this.defaults = {
+                confirmBtnID: 'mc_conf',
+                denyBtnID: 'mc_deny',
+                doCheck: null,
+                onCheckFail: null,
+                onConfirm: null,
+                onDeny: null,
+                overlayID: 'mc_overlay',
+                popupID: null,
+                preShow: null,
+                seeButtons: 'both',
+                showTarget: null,
+                confirmCss: null,
+                denyCss: null
+            };
 
-			this.construct = function (options) {
-				//merge parameters
-				var settings = $.extend({}, $.modalconfirm.defaults, options || {});
-				this.each(function () {
-					$(this).bind('click',settings,clickhandler);
-				});
-				return this;
-			};
+            this.construct = function(options) {
+                //merge parameters
+                var settings = $.extend({}, $.modalconfirm.defaults, options || {});
+                this.each(function() {
+                    $(this).bind('click', settings, clickhandler);
+                });
+                return this;
+            };
 
-			function clickhandler (ef) {
-				//bound-object(s) click handler and (probably) confirm-button click
-				var settings = ef.data,
-					tg = ef.currentTarget;
-				if(!$.isFunction(settings.doCheck) || settings.doCheck.call(this)) {
-					ef.stopImmediatePropagation();
-					ef.preventDefault();
-					var $overlay = $('#'+settings.overlayID),
-						$popup = (settings.popupID) ?
-						$('#'+settings.popupID) : $overlay.children(':first');
-					var $btn = $popup.find('#'+settings.confirmBtnID);
-					if(settings.seeButtons != 'deny') {
-						$btn.click(function(eb) {
-							//confirm-button click handler
-							eb.stopImmediatePropagation();
-							hide($overlay,$popup,settings);
-							var conf;
-							if($.isFunction(settings.onConfirm)) {
-								conf = settings.onConfirm.call(this,tg,$popup);
-							} else {
-								conf = (settings.onConfirm === null || settings.onConfirm !== false);
-							}
-							if(conf) {
-								var $tg = $(tg);
-								$tg.unbind('click',clickhandler); //prevent re-entrance
-								tg.click(); //NOT $tg.trigger('click') - WON'T WORK ON LINKS
-								$tg.bind('click',settings,clickhandler);
-							}
-						});
-					} else {
-						//cache current display setting, for later reinstate
-						if ('display' in $btn[0].style) {
-							settings.confirmCss = $btn[0].style.display;
-						} else {
-							settings.confirmCss = '';
-						}
-						$btn[0].style.display = 'none';
-					}
-					$btn = $popup.find('#'+settings.denyBtnID);
-					if(settings.seeButtons != 'confirm') {
-						$btn.click(function(eb) {
-							//deny-button click handler
-							eb.stopImmediatePropagation();
-							eb.preventDefault();
-							hide($overlay,$popup,settings);
-							$.isFunction(settings.onDeny) && settings.onDeny.call(this,tg);
-						});
-					} else {
-						if ('display' in $btn[0].style) {
-							settings.denyCss = $btn[0].style.display;
-						} else {
-							settings.denyCss = '';
-						}
-						$btn[0].style.display = 'none';
-					}
-					//setup the popup
-					$.isFunction(settings.preShow) && settings.preShow.call(this,tg,$popup);
-					var high = $popup.height();
-					var wide = $popup.width();
-					var vadj = -$popup.outerHeight()/2;
-					var hadj = -$popup.outerWidth()/2;
-					$overlay.css('display','block');
-					$popup.css({
-						'margin-top' : vadj + 'px',
-						'margin-left' : hadj + 'px',
-						'height' : high + 'px',
-						'width' : wide + 'px',
-						'display' : 'block'
-					});
-				} else {
-					//check failed, no popup
-					var stop;
-					if(settings.onCheckFail) {
-						if($.isFunction(settings.onCheckFail)) {
-							stop = !settings.onCheckFail.call(this,tg);
-						} else {
-							stop = (settings.onCheckFail === false);
-						}
-					} else {
-						stop = true;
-					}
-					if(stop) {
-						$.isFunction(settings.onDeny) && settings.onDeny.call(this,tg);
-						ef.stopImmediatePropagation();
-						ef.preventDefault();
-					}
-				}
-			}
+            function clickhandler(ef) {
+                //bound-object(s) click handler and (probably) confirm-button click
+                var settings = ef.data,
+                    tg = ef.currentTarget;
+                if (!$.isFunction(settings.doCheck) || settings.doCheck.call(this)) {
+                    ef.stopImmediatePropagation();
+                    ef.preventDefault();
+                    var $overlay = $('#' + settings.overlayID),
+                        $popup = (settings.popupID) ?
+                        $('#' + settings.popupID) : $overlay.children(':first');
+                    var $btn = $popup.find('#' + settings.confirmBtnID);
+                    if (settings.seeButtons != 'deny') {
+                        $btn.click(function(eb) {
+                            //confirm-button click handler
+                            eb.stopImmediatePropagation();
+                            hide($overlay, $popup, settings);
+                            var conf;
+                            if ($.isFunction(settings.onConfirm)) {
+                                conf = settings.onConfirm.call(this, tg, $popup);
+                            } else {
+                                conf = (settings.onConfirm === null || settings.onConfirm !== false);
+                            }
+                            if (conf) {
+                                var $tg = $(tg);
+                                $tg.unbind('click', clickhandler); //prevent re-entrance
+                                tg.click(); //NOT $tg.trigger('click') - WON'T WORK ON LINKS
+                                $tg.bind('click', settings, clickhandler);
+                            }
+                        });
+                    } else {
+                        //cache current display setting, for later reinstate
+                        if ('display' in $btn[0].style) {
+                            settings.confirmCss = $btn[0].style.display;
+                        } else {
+                            settings.confirmCss = '';
+                        }
+                        $btn[0].style.display = 'none';
+                    }
+                    $btn = $popup.find('#' + settings.denyBtnID);
+                    if (settings.seeButtons != 'confirm') {
+                        $btn.click(function(eb) {
+                            //deny-button click handler
+                            eb.stopImmediatePropagation();
+                            eb.preventDefault();
+                            hide($overlay, $popup, settings);
+                            $.isFunction(settings.onDeny) && settings.onDeny.call(this, tg);
+                        });
+                    } else {
+                        if ('display' in $btn[0].style) {
+                            settings.denyCss = $btn[0].style.display;
+                        } else {
+                            settings.denyCss = '';
+                        }
+                        $btn[0].style.display = 'none';
+                    }
+                    //setup the popup
+                    $.isFunction(settings.preShow) && settings.preShow.call(this, tg, $popup);
+                    $overlay.css('display', 'block'); //1st, to get popup sizes right
+                    var vadj = -$popup.outerHeight() / 2;
+                    var hadj = -$popup.outerWidth() / 2;
+                    $popup.css({
+                        'margin-top': vadj + 'px',
+                        'margin-left': hadj + 'px',
+                        'display': 'block'
+                    });
+                } else {
+                    //check failed, no popup
+                    var stop;
+                    if (settings.onCheckFail) {
+                        if ($.isFunction(settings.onCheckFail)) {
+                            stop = !settings.onCheckFail.call(this, tg);
+                        } else {
+                            stop = (settings.onCheckFail === false);
+                        }
+                    } else {
+                        stop = true;
+                    }
+                    if (stop) {
+                        $.isFunction(settings.onDeny) && settings.onDeny.call(this, tg);
+                        ef.stopImmediatePropagation();
+                        ef.preventDefault();
+                    }
+                }
+            }
 
-			function hide ($overlay,$popup,settings) {
-				$popup.css({'display':'none'});
-				$overlay.css({'display':'none'});
-				$popup.find('#'+settings.confirmBtnID)[0].style.display = settings.confirmCss;
-				settings.confirmCss = null;
-				$popup.find('#'+settings.denyBtnID)[0].style.display = settings.denyCss;
-				settings.denyCss = null;
-			}
+            function hide($overlay, $popup, settings) {
+                $popup.css({ 'display': 'none' });
+                $overlay.css({ 'display': 'none' });
+                $popup.find('#' + settings.confirmBtnID)[0].style.display = settings.confirmCss;
+                settings.confirmCss = null;
+                $popup.find('#' + settings.denyBtnID)[0].style.display = settings.denyCss;
+                settings.denyCss = null;
+            }
 
-			this.show = function (options) {
-				var settings = $.extend({}, $.modalconfirm.defaults, options || {}),
-				$overlay = $('#'+settings.overlayID),
-				$popup = (settings.popupID) ?
-					$('#'+settings.popupID) : $overlay.children(':first');
-				var $btn = $popup.find('#'+settings.confirmBtnID);
-				if(settings.seeButtons != 'deny') {
-					$btn.click(function(eb) {
-						//confirm-button click handler
-						eb.stopImmediatePropagation();
-						hide($overlay,$popup,settings);
-						$.isFunction(settings.onConfirm) && settings.onConfirm.call(this,settings.showTarget,$popup);
-					});
-				} else {
-					//cache current display setting, for later reinstate
-					if ('display' in $btn[0].style) {
-						settings.confirmCss = $btn[0].style.display;
-					} else {
-						settings.confirmCss = '';
-					}
-					$btn[0].style.display = 'none';
-				}
-				$btn = $popup.find('#'+settings.denyBtnID);
-				if(settings.seeButtons != 'confirm') {
-					$btn.click(function(eb) {
-						//deny-button click handler
-						eb.stopImmediatePropagation();
-						eb.preventDefault();
-						hide($overlay,$popup,settings);
-						$.isFunction(settings.onDeny) && settings.onDeny.call(this,settings.showTarget);
-					});
-				} else {
-					if ('display' in $btn[0].style) {
-						settings.denyCss = $btn[0].style.display;
-					} else {
-						settings.denyCss = '';
-					}
-					$btn[0].style.display = 'none';
-				}
-				//setup the popup
-				$.isFunction(settings.preShow) && settings.preShow.call(this,settings.showTarget,$popup);
-				var high = $popup.height();
-				var wide = $popup.width();
-				var vadj = -$popup.outerHeight()/2;
-				var hadj = -$popup.outerWidth()/2;
-				$overlay.css('display','block');
-				$popup.css({
-					'margin-top' : vadj + 'px',
-					'margin-left' : hadj + 'px',
-					'height' : high + 'px',
-					'width' : wide + 'px',
-					'display' : 'block'
-				});
-			};
-		}
-	});
-	//merge object into jQuery prototype
-	$.fn.extend({ modalconfirm: $.modalconfirm.construct });
+            this.show = function(options) {
+                var settings = $.extend({}, $.modalconfirm.defaults, options || {}),
+                    $overlay = $('#' + settings.overlayID),
+                    $popup = (settings.popupID) ?
+                    $('#' + settings.popupID) : $overlay.children(':first');
+                var $btn = $popup.find('#' + settings.confirmBtnID);
+                if (settings.seeButtons != 'deny') {
+                    $btn.click(function(eb) {
+                        //confirm-button click handler
+                        eb.stopImmediatePropagation();
+                        hide($overlay, $popup, settings);
+                        $.isFunction(settings.onConfirm) && settings.onConfirm.call(this, settings.showTarget, $popup);
+                    });
+                } else {
+                    //cache current display setting, for later reinstate
+                    if ('display' in $btn[0].style) {
+                        settings.confirmCss = $btn[0].style.display;
+                    } else {
+                        settings.confirmCss = '';
+                    }
+                    $btn[0].style.display = 'none';
+                }
+                $btn = $popup.find('#' + settings.denyBtnID);
+                if (settings.seeButtons != 'confirm') {
+                    $btn.click(function(eb) {
+                        //deny-button click handler
+                        eb.stopImmediatePropagation();
+                        eb.preventDefault();
+                        hide($overlay, $popup, settings);
+                        $.isFunction(settings.onDeny) && settings.onDeny.call(this, settings.showTarget);
+                    });
+                } else {
+                    if ('display' in $btn[0].style) {
+                        settings.denyCss = $btn[0].style.display;
+                    } else {
+                        settings.denyCss = '';
+                    }
+                    $btn[0].style.display = 'none';
+                }
+                //setup the popup
+                $.isFunction(settings.preShow) && settings.preShow.call(this, settings.showTarget, $popup);
+                $overlay.css('display', 'block'); //1st, to get popup sizes right
+                var high = $popup.height();
+                var wide = $popup.width();
+                var vadj = -$popup.outerHeight() / 2;
+                var hadj = -$popup.outerWidth() / 2;
+                $popup.css({
+                    'margin-top': vadj + 'px',
+                    'margin-left': hadj + 'px',
+                    'height': high + 'px',
+                    'width': wide + 'px',
+                    'display': 'block'
+                });
+            };
+        }
+    });
+    //merge object into jQuery prototype
+    $.fn.extend({ modalconfirm: $.modalconfirm.construct });
 })(jQuery);
