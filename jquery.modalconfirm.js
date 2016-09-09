@@ -1,6 +1,6 @@
 /*!
 ModalConfirm popup modal confirmation-dialog
-Version 2.2
+Version 2.3
 Copyright (C) 2014-2016 Tom Phane
 Licensed under the GNU Affero GPL license v.3, or at the distributor's discretion, a later version
 */
@@ -167,6 +167,7 @@ Licensed under the GNU Affero GPL license v.3, or at the distributor's discretio
                     $popup.css({
                         'margin-top': vadj + 'px',
                         'margin-left': hadj + 'px',
+                        'position':'fixed',
                         'display': 'block'
                     });
                 } else {
