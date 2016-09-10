@@ -16,6 +16,7 @@ Licensed under the GNU Affero GPL license v.3, or at the distributor's discretio
   options overriding corresponding defaults.
  @param settings An object literal containing one or more key:value pairs
 	Settings options -
+	 event: name of bound event, default 'click'
 	 overlayID: ID of div representing the background-overlay, default 'mc_overlay'
 	 popupID: ID of div representing the dialog, default null (in which case,
 		the dialog div is assumed to be the first child of the overlayID div)
@@ -24,23 +25,24 @@ Licensed under the GNU Affero GPL license v.3, or at the distributor's discretio
 		dialog div, default 'mc_conf'
 	 denyBtnID: ID of deny/refuse/no button to be displayed inside the dialog div,
 		default 'mc_deny'
-	 showTarget: DOM object to use for 'target' argument in callbacks, default null
-	 doCheck: function for click-time check whether to show the dialog, default null
+	 doCheck: function for event-time check whether to show the dialog, default null
 	 preShow: function to tailor the dialog prior to showing it, default null
 	 onCheckFail: either a function (which returns true/false), or just boolean true
 	 	or false, default null. Relevant if doCheck returns false - false aborts the
 	 	original event
 	 onConfirm: function to call if confirmBtnID button is clicked, default null
 	 onDeny: function to call if denyBtnID button is clicked, default null
-     	whether or not present, the original event will be aborted
+     	  whether or not present, the original event will be aborted
+	 showTarget: DOM object treated as the bound object and event.target, during a
+	 'show' method call, default null
 
  @example $.modalconfirm.show({settings});
  @desc programatically pop up a dialog
- @param settings ibid
-
+ @param settings ibid, must include a showTarget if the event is to be triggered
+  automatically after confirmation
  API
  context/this = object to which the dialog was bound
- tg = target, what was clicked
+ tg = bound-event.currentTarget object
  $popup = popup container-div object
  doCheck() return T/F, T shows dialog
  preShow(tg,$popup) return nothing
@@ -60,7 +62,7 @@ Licensed under the GNU Affero GPL license v.3, or at the distributor's discretio
 	background-color:rgba(0,0,0,.3); //or whatever
  for dialog div:
 	display:none;
-	position: absolute;
+	position:fixed;
 	top:50%;
 	left:50%;
 	z-index:1002;
@@ -80,6 +82,7 @@ Licensed under the GNU Affero GPL license v.3, or at the distributor's discretio
     $.extend({
         modalconfirm: new function() {
             this.defaults = {
+                event: 'click',
                 confirmBtnID: 'mc_conf',
                 denyBtnID: 'mc_deny',
                 doCheck: null,
@@ -90,22 +93,20 @@ Licensed under the GNU Affero GPL license v.3, or at the distributor's discretio
                 popupID: null,
                 preShow: null,
                 seeButtons: 'both',
-                showTarget: null,
-                confirmCss: null,
-                denyCss: null
+                showTarget: null
             };
 
             this.construct = function(options) {
                 //merge parameters
-                var settings = $.extend({}, $.modalconfirm.defaults, options || {});
+                var settings = $.extend({}, $.modalconfirm.defaults, options || {}, {confirmCss: null, denyCss: null});
                 this.each(function() {
-                    $(this).bind('click', settings, clickhandler);
+                    $(this).bind(settings.event, settings, eventhandler);
                 });
                 return this;
             };
 
-            function clickhandler(ef) {
-                //bound-object(s) click handler and (probably) confirm-button click
+            //target bound-event handler
+            function eventhandler(ef) {
                 var settings = ef.data,
                     tg = ef.currentTarget;
                 if (!$.isFunction(settings.doCheck) || settings.doCheck.call(this)) {
@@ -116,8 +117,8 @@ Licensed under the GNU Affero GPL license v.3, or at the distributor's discretio
                         $('#' + settings.popupID) : $overlay.children(':first');
                     var $btn = $popup.find('#' + settings.confirmBtnID);
                     if (settings.seeButtons != 'deny') {
+                        //confirm-button click handler
                         $btn.click(function(eb) {
-                            //confirm-button click handler
                             eb.stopImmediatePropagation();
                             hide($overlay, $popup, settings);
                             var conf;
@@ -128,9 +129,9 @@ Licensed under the GNU Affero GPL license v.3, or at the distributor's discretio
                             }
                             if (conf) {
                                 var $tg = $(tg);
-                                $tg.unbind('click', clickhandler); //prevent re-entrance
-                                tg.click(); //NOT $tg.trigger('click') - WON'T WORK ON LINKS
-                                $tg.bind('click', settings, clickhandler);
+                                $tg.unbind(settings.event, eventhandler); //prevent re-entrance
+                                $(ef.target).trigger(settings.event); //start again from source
+                                $tg.bind(settings.event, settings, eventhandler);
                             }
                         });
                     } else {
@@ -144,8 +145,8 @@ Licensed under the GNU Affero GPL license v.3, or at the distributor's discretio
                     }
                     $btn = $popup.find('#' + settings.denyBtnID);
                     if (settings.seeButtons != 'confirm') {
+                        //deny-button click handler
                         $btn.click(function(eb) {
-                            //deny-button click handler
                             eb.stopImmediatePropagation();
                             eb.preventDefault();
                             hide($overlay, $popup, settings);
@@ -167,7 +168,7 @@ Licensed under the GNU Affero GPL license v.3, or at the distributor's discretio
                     $popup.css({
                         'margin-top': vadj + 'px',
                         'margin-left': hadj + 'px',
-                        'position':'fixed',
+                        'position': 'fixed',
                         'display': 'block'
                     });
                 } else {
@@ -200,17 +201,26 @@ Licensed under the GNU Affero GPL license v.3, or at the distributor's discretio
             }
 
             this.show = function(options) {
-                var settings = $.extend({}, $.modalconfirm.defaults, options || {}),
+                var settings = $.extend({}, $.modalconfirm.defaults, options || {}, {confirmCss: null, denyCss: null}),
                     $overlay = $('#' + settings.overlayID),
                     $popup = (settings.popupID) ?
-                    $('#' + settings.popupID) : $overlay.children(':first');
-                var $btn = $popup.find('#' + settings.confirmBtnID);
+                    $('#' + settings.popupID) : $overlay.children(':first'),
+                    $btn = $popup.find('#' + settings.confirmBtnID);
                 if (settings.seeButtons != 'deny') {
+                    //confirm-button click handler
                     $btn.click(function(eb) {
-                        //confirm-button click handler
                         eb.stopImmediatePropagation();
                         hide($overlay, $popup, settings);
-                        $.isFunction(settings.onConfirm) && settings.onConfirm.call(this, settings.showTarget, $popup);
+                        var conf,
+                            tg = settings.showTarget;
+                        if ($.isFunction(settings.onConfirm)) {
+                            conf = settings.onConfirm.call(this, tg, $popup);
+                        } else {
+                            conf = (settings.onConfirm === null || settings.onConfirm !== false);
+                        }
+                        if (conf && tg) {
+                            $(tg).trigger(settings.event);
+                        }
                     });
                 } else {
                     //cache current display setting, for later reinstate
@@ -223,8 +233,8 @@ Licensed under the GNU Affero GPL license v.3, or at the distributor's discretio
                 }
                 $btn = $popup.find('#' + settings.denyBtnID);
                 if (settings.seeButtons != 'confirm') {
+                    //deny-button click handler
                     $btn.click(function(eb) {
-                        //deny-button click handler
                         eb.stopImmediatePropagation();
                         eb.preventDefault();
                         hide($overlay, $popup, settings);
@@ -250,6 +260,7 @@ Licensed under the GNU Affero GPL license v.3, or at the distributor's discretio
                     'margin-left': hadj + 'px',
                     'height': high + 'px',
                     'width': wide + 'px',
+                    'position': 'fixed',
                     'display': 'block'
                 });
             };
